@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"log"
@@ -51,18 +52,22 @@ func output(rounds_count int) {
 		if err != nil {
 			log.Fatal(err)
 		}
+		w := bufio.NewWriter(file)
 		last_print := time.Now().Unix()
+		all_bytes := 0
 		for i := 0; i < rounds_count; i++ {
-			file.WriteString(<-out_chan + "\n")
+			bytes, _ := w.WriteString(<-out_chan + "\n")
+			all_bytes = all_bytes + bytes
 			if time.Now().Unix() > last_print {
 				go func() {
-					fmt.Printf("\r%.2f%%", get_progress(i, rounds_count))
+					fmt.Printf("\r%.2f%%, %d MB", get_progress(i, rounds_count), all_bytes/1048576)
 				}()
 				last_print = time.Now().Unix()
 			}
 		}
 		fmt.Println()
 		fmt.Println("done")
+		w.Flush()
 		file.Close()
 	}
 	wg.Done()
