@@ -12,7 +12,16 @@ import (
 	"time"
 )
 
-var symbols = flag.String("s", "0123456789", "symbols")
+const digits = "0123456789"
+const letters = "abcdefghijklmnopqrstvwxyz"
+
+var symbols_set = map[string]string{
+	"digits":  digits,
+	"letters": letters,
+}
+
+var chosen_sets = flag.String("sset", "", "sets of symbols separated by ','")
+var symbols = flag.String("s", digits, "symbols")
 var max_len = flag.Int("max", 8, "max length")
 var min_len = flag.Int("min", 1, "min length")
 var file_name = flag.String("f", "", "file to output")
@@ -73,9 +82,21 @@ func output(rounds_count int) {
 	wg.Done()
 }
 
+func get_symbols() string {
+	if *chosen_sets != "" {
+		out_string := ""
+		for _, elem := range strings.Split(*chosen_sets, ",") {
+			out_string += symbols_set[elem]
+		}
+		return out_string
+	} else {
+		return *symbols
+	}
+}
+
 func main() {
 	flag.Parse()
-	symbols_list = strings.Split(*symbols, "")
+	symbols_list = strings.Split(get_symbols(), "")
 	symbols_list_length := len(symbols_list)
 	max_symbol := symbols_list_length - 1
 	index_list := []int{-1}
