@@ -3,14 +3,18 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"math"
+	"os"
 	"strings"
 	"sync"
+	"time"
 )
 
 var symbols = flag.String("s", "0123456789", "symbols")
 var max_len = flag.Int("max", 8, "max length")
 var min_len = flag.Int("min", 1, "min length")
+var file_name = flag.String("f", "", "file to output")
 
 var symbols_list []string
 var out_chan chan string = make(chan string, 1000000)
@@ -33,9 +37,33 @@ func get_rounds_count(symbols_length int, max_len int) int {
 	return ret
 }
 
+func get_progress(cur int, all int) float64 {
+	return float64(cur) / float64(all) * 100
+}
+
 func output(rounds_count int) {
-	for i := 0; i < rounds_count; i++ {
-		fmt.Println(<-out_chan)
+	if *file_name == "" {
+		for i := 0; i < rounds_count; i++ {
+			fmt.Println(<-out_chan)
+		}
+	} else {
+		file, err := os.Create(*file_name)
+		if err != nil {
+			log.Fatal(err)
+		}
+		last_print := time.Now().Unix()
+		for i := 0; i < rounds_count; i++ {
+			file.WriteString(<-out_chan + "\n")
+			if time.Now().Unix() > last_print {
+				go func() {
+					fmt.Printf("\r%.2f%%", get_progress(i, rounds_count))
+				}()
+				last_print = time.Now().Unix()
+			}
+		}
+		fmt.Println()
+		fmt.Println("done")
+		file.Close()
 	}
 	wg.Done()
 }
