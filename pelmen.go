@@ -82,21 +82,33 @@ func output(rounds_count int) {
 	wg.Done()
 }
 
+func get_unique(symbols_list []string) []string {
+	set := make(map[string]bool)
+	for _, val := range symbols_list {
+		set[val] = true
+	}
+	unique := make([]string, 0, len(set))
+	for k := range set {
+		unique = append(unique, k)
+	}
+	return unique
+}
+
 func get_symbols() string {
+	out_string := ""
 	if *chosen_sets != "" {
-		out_string := ""
 		for _, elem := range strings.Split(*chosen_sets, ",") {
 			out_string += symbols_set[elem]
 		}
-		return out_string
-	} else {
-		return *symbols
 	}
+	out_string += *symbols
+	return out_string
 }
 
 func main() {
 	flag.Parse()
 	symbols_list = strings.Split(get_symbols(), "")
+	symbols_list = get_unique(symbols_list)
 	symbols_list_length := len(symbols_list)
 	max_symbol := symbols_list_length - 1
 	index_list := []int{-1}
