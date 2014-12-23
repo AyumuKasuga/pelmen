@@ -19,9 +19,18 @@ func slices_compare(first []string, second []string) bool {
 	return true
 }
 
-func Test_get_unique(t *testing.T) {
-	unique := get_unique([]string{"a", "a", "c", "b", "b", "d", "a", "b", "c", "c"})
-	if !slices_compare(unique, []string{"a", "b", "c", "d"}) {
+func Test_get_symbols(t *testing.T) {
+	check := []string{"a", "b", "c", "d", "e", "f"}
+	test := get_unique_symbols_list("aaabcdefffddda", "")
+	if !slices_compare(check, test) {
+		t.Fail()
+	}
+}
+
+func Test_get_symbols_with_sset(t *testing.T) {
+	check := []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b", "c", "d", "e", "f"}
+	test := get_unique_symbols_list("aaabcdefffddda", "digits")
+	if !slices_compare(check, test) {
 		t.Fail()
 	}
 }

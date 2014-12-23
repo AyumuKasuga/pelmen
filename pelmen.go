@@ -67,7 +67,16 @@ func output(rounds_count int, file_name string) {
 	wg.Done()
 }
 
-func get_unique(symbols_list []string) []string {
+func get_unique_symbols_list(symbols string, chosen_sets string) []string {
+	out_string := ""
+	if chosen_sets != "" {
+		for _, elem := range strings.Split(chosen_sets, ",") {
+			out_string += symbols_set[elem]
+		}
+	}
+	out_string += symbols
+	symbols_list = strings.Split(out_string, "")
+
 	set := make(map[string]bool)
 	for _, val := range symbols_list {
 		set[val] = true
@@ -76,25 +85,14 @@ func get_unique(symbols_list []string) []string {
 	for k := range set {
 		unique = append(unique, k)
 	}
-	return unique
-}
 
-func get_symbols(symbols string, chosen_sets string) string {
-	out_string := ""
-	if chosen_sets != "" {
-		for _, elem := range strings.Split(chosen_sets, ",") {
-			out_string += symbols_set[elem]
-		}
-	}
-	out_string += symbols
-	return out_string
+	return unique
 }
 
 func main() {
 	config := Config{}
 	config.Parse()
-	symbols_list = strings.Split(get_symbols(config.Symbols, config.ChosenSets), "")
-	symbols_list = get_unique(symbols_list)
+	symbols_list = get_unique_symbols_list(config.Symbols, config.ChosenSets)
 	symbols_list_length := len(symbols_list)
 	max_symbol := symbols_list_length - 1
 	index_list := []int{-1}
