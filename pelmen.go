@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"flag"
 	"fmt"
 	"log"
 	"math"
@@ -11,20 +10,6 @@ import (
 	"sync"
 	"time"
 )
-
-const digits = "0123456789"
-const letters = "abcdefghijklmnopqrstvwxyz"
-
-var symbols_set = map[string]string{
-	"digits":  digits,
-	"letters": letters,
-}
-
-var chosen_sets = flag.String("sset", "", "sets of symbols separated by ','")
-var symbols = flag.String("s", digits, "symbols")
-var max_len = flag.Int("max", 8, "max length")
-var min_len = flag.Int("min", 1, "min length")
-var file_name = flag.String("f", "", "file to output")
 
 var symbols_list []string
 var out_chan chan string = make(chan string, 1000000)
@@ -51,13 +36,13 @@ func get_progress(cur int, all int) float64 {
 	return float64(cur) / float64(all) * 100
 }
 
-func output(rounds_count int) {
-	if *file_name == "" {
+func output(rounds_count int, file_name string) {
+	if file_name == "" {
 		for i := 0; i < rounds_count; i++ {
 			fmt.Println(<-out_chan)
 		}
 	} else {
-		file, err := os.Create(*file_name)
+		file, err := os.Create(file_name)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -94,34 +79,35 @@ func get_unique(symbols_list []string) []string {
 	return unique
 }
 
-func get_symbols() string {
+func get_symbols(symbols string, chosen_sets string) string {
 	out_string := ""
-	if *chosen_sets != "" {
-		for _, elem := range strings.Split(*chosen_sets, ",") {
+	if chosen_sets != "" {
+		for _, elem := range strings.Split(chosen_sets, ",") {
 			out_string += symbols_set[elem]
 		}
 	}
-	out_string += *symbols
+	out_string += symbols
 	return out_string
 }
 
 func main() {
-	flag.Parse()
-	symbols_list = strings.Split(get_symbols(), "")
+	config := Config{}
+	config.Parse()
+	symbols_list = strings.Split(get_symbols(config.Symbols, config.ChosenSets), "")
 	symbols_list = get_unique(symbols_list)
 	symbols_list_length := len(symbols_list)
 	max_symbol := symbols_list_length - 1
 	index_list := []int{-1}
-	rounds_count := get_rounds_count(symbols_list_length, *max_len)
+	rounds_count := get_rounds_count(symbols_list_length, config.MaxLen)
 
-	if *min_len > 1 {
-		for i := 1; i < *min_len; i++ {
+	if config.MinLen > 1 {
+		for i := 1; i < config.MinLen; i++ {
 			index_list = append([]int{0}, index_list...)
 		}
-		rounds_count = rounds_count - get_rounds_count(symbols_list_length, *min_len-1)
+		rounds_count = rounds_count - get_rounds_count(symbols_list_length, config.MinLen-1)
 	}
 
-	go output(rounds_count)
+	go output(rounds_count, config.FileName)
 
 	wg.Add(1)
 

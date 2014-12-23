@@ -5,5 +5,4 @@ go:
 
 script: go test ./...
 notifications:
-  email:
-    on_failure: always
+  email: false
