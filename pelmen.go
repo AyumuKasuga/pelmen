@@ -1,14 +1,14 @@
 package main
 
 import (
-	// "bufio"
+	"bufio"
 	"fmt"
-	// "log"
+	"log"
 	"math"
-	// "os"
+	"os"
 	"strings"
-	// "sync"
-	// "time"
+	"sync"
+	"time"
 )
 
 // var symbols_list []string
@@ -32,40 +32,40 @@ import (
 // 	return ret
 // }
 
-// func get_progress(cur int, all int) float64 {
-// 	return float64(cur) / float64(all) * 100
-// }
+func get_progress(cur int, all int) float64 {
+	return float64(cur) / float64(all) * 100
+}
 
-// func output(rounds_count int, file_name string) {
-// 	if file_name == "" {
-// 		for i := 0; i < rounds_count; i++ {
-// 			fmt.Println(<-out_chan)
-// 		}
-// 	} else {
-// 		file, err := os.Create(file_name)
-// 		if err != nil {
-// 			log.Fatal(err)
-// 		}
-// 		w := bufio.NewWriter(file)
-// 		last_print := time.Now().Unix()
-// 		all_bytes := 0
-// 		for i := 0; i < rounds_count; i++ {
-// 			bytes, _ := w.WriteString(<-out_chan + "\n")
-// 			all_bytes = all_bytes + bytes
-// 			if time.Now().Unix() > last_print {
-// 				go func() {
-// 					fmt.Printf("\r%.2f%%, %d MB", get_progress(i, rounds_count), all_bytes/1048576)
-// 				}()
-// 				last_print = time.Now().Unix()
-// 			}
-// 		}
-// 		fmt.Println()
-// 		fmt.Println("done")
-// 		w.Flush()
-// 		file.Close()
-// 	}
-// 	wg.Done()
-// }
+func output(rounds_count int, file_name string, wg *sync.WaitGroup, out_chan chan string) {
+	if file_name == "" {
+		for i := 0; i < rounds_count; i++ {
+			fmt.Println(<-out_chan)
+		}
+	} else {
+		file, err := os.Create(file_name)
+		if err != nil {
+			log.Fatal(err)
+		}
+		w := bufio.NewWriter(file)
+		last_print := time.Now().Unix()
+		all_bytes := 0
+		for i := 0; i < rounds_count; i++ {
+			bytes, _ := w.WriteString(<-out_chan + "\n")
+			all_bytes = all_bytes + bytes
+			if time.Now().Unix() > last_print {
+				go func() {
+					fmt.Printf("\r%.2f%%, %d MB", get_progress(i, rounds_count), all_bytes/1048576)
+				}()
+				last_print = time.Now().Unix()
+			}
+		}
+		fmt.Println()
+		fmt.Println("done")
+		w.Flush()
+		file.Close()
+	}
+	wg.Done()
+}
 
 // func get_unique_symbols_list(symbols string, chosen_sets string) []string {
 // 	out_string := ""
@@ -94,10 +94,15 @@ func main() {
 	config.parse_cli()
 	gen := Generator{config: config}
 	gen.init()
+	var wg sync.WaitGroup
+	wg.Add(1)
+	var out_chan chan string = make(chan string, 1000000)
+	go output(gen.rounds_count, gen.config.filename, &wg, out_chan)
 	for i := 0; i < gen.rounds_count; i++ {
 		gen.next()
-		fmt.Println(gen.get_string())
+		out_chan <- gen.get_string()
 	}
+	wg.Wait()
 	// symbols_list = get_unique_symbols_list(config.Symbols, config.ChosenSets)
 	// symbols_list_length := len(symbols_list)
 	// max_symbol := symbols_list_length - 1
@@ -147,7 +152,6 @@ type Generator struct {
 	max_symbol          int
 	index_list          []int
 	rounds_count        int
-	idx                 int
 	round               int
 }
 
@@ -202,18 +206,18 @@ func (gen *Generator) calculate_rounds_count() {
 }
 
 func (gen *Generator) next() {
-	gen.idx = 1
+	idx := 1
 	for {
-		symbol_number := gen.index_list[len(gen.index_list)-gen.idx]
+		symbol_number := gen.index_list[len(gen.index_list)-idx]
 		if symbol_number == gen.max_symbol {
-			gen.index_list[len(gen.index_list)-gen.idx] = 0
-			gen.idx++
-			if len(gen.index_list) < gen.idx {
+			gen.index_list[len(gen.index_list)-idx] = 0
+			idx++
+			if len(gen.index_list) < idx {
 				gen.index_list = append([]int{0}, gen.index_list...)
 				break
 			}
 		} else {
-			gen.index_list[len(gen.index_list)-gen.idx]++
+			gen.index_list[len(gen.index_list)-idx]++
 			break
 		}
 	}
