@@ -5,11 +5,11 @@ import (
 )
 
 type Config struct {
-	ChosenSets string
-	Symbols    string
-	MaxLen     int
-	MinLen     int
-	FileName   string
+	chosensets string
+	symbols    string
+	maxlen     int
+	minlen     int
+	filename   string
 }
 
 const digits = "0123456789"
@@ -20,7 +20,7 @@ var symbols_set = map[string]string{
 	"letters": letters,
 }
 
-func (config *Config) Parse() {
+func (config *Config) parse_cli() {
 	chosen_sets_flag := flag.String("sset", "", "sets of symbols separated by ','")
 	symbols_flag := flag.String("s", digits, "symbols")
 	maxlen_flag := flag.Int("max", 8, "max length")
@@ -29,9 +29,9 @@ func (config *Config) Parse() {
 
 	flag.Parse()
 
-	config.ChosenSets = *chosen_sets_flag
-	config.Symbols = *symbols_flag
-	config.MaxLen = *maxlen_flag
-	config.MinLen = *minlen_flag
-	config.FileName = *filename_flag
+	config.chosensets = *chosen_sets_flag
+	config.symbols = *symbols_flag
+	config.maxlen = *maxlen_flag
+	config.minlen = *minlen_flag
+	config.filename = *filename_flag
 }
