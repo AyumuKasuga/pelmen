@@ -6,6 +6,7 @@ import (
 	"log"
 	"math"
 	"os"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -89,19 +90,26 @@ func output(rounds_count int, file_name string, wg *sync.WaitGroup, out_chan cha
 // 	return unique
 // }
 
+func worker(gen *Generator, out_chan chan string) {
+	start_round := gen.round
+	for gen.round-start_round < gen.rounds_count {
+		out_chan <- gen.get_string()
+		gen.next()
+		// out_chan <- gen.get_string()
+	}
+}
+
 func main() {
 	config := Config{}
 	config.parse_cli()
 	gen := Generator{config: config}
-	gen.init()
+	gen.init(1)
 	var wg sync.WaitGroup
 	wg.Add(1)
 	var out_chan chan string = make(chan string, 1000000)
 	go output(gen.rounds_count, gen.config.filename, &wg, out_chan)
-	for i := 0; i < gen.rounds_count; i++ {
-		gen.next()
-		out_chan <- gen.get_string()
-	}
+	go worker(&gen, out_chan)
+
 	wg.Wait()
 	// symbols_list = get_unique_symbols_list(config.Symbols, config.ChosenSets)
 	// symbols_list_length := len(symbols_list)
@@ -155,12 +163,32 @@ type Generator struct {
 	round               int
 }
 
-func (gen *Generator) init() {
+func (gen *Generator) init(start_round int) {
+	gen.round = start_round
 	gen.populate_symbols_list()
 	gen.max_symbol = gen.symbols_list_length - 1
 	gen.calculate_rounds_count()
-	gen.index_list = []int{-1}
-	gen.round = 1
+	// gen.index_list = []int{-1}
+	gen.make_index_list()
+}
+
+func (gen *Generator) make_index_list() {
+	rem := 0
+	res := gen.round - 1
+	gen.index_list = make([]int, 0, gen.config.maxlen)
+	for {
+		res, rem = res/gen.symbols_list_length, int(math.Remainder(float64(res), float64(gen.symbols_list_length)))
+		if rem < 0 {
+			rem = gen.symbols_list_length + rem
+		}
+		gen.index_list = append(gen.index_list, rem)
+		if res == 0 {
+			break
+		}
+	}
+	sort.Sort(sort.Reverse(sort.IntSlice(gen.index_list)))
+
+	// gen.index_list = []int{-1}
 }
 
 func (gen *Generator) populate_symbols_list() {
@@ -181,7 +209,7 @@ func (gen *Generator) populate_symbols_list() {
 	for k := range set {
 		unique = append(unique, k)
 	}
-
+	sort.Sort(sort.StringSlice(unique))
 	gen.symbols_list = unique
 	gen.symbols_list_length = len(gen.symbols_list)
 }
@@ -202,11 +230,12 @@ func (gen *Generator) calculate_rounds_count() {
 		}
 		count = count - gen.get_rounds_count(gen.symbols_list_length, gen.config.minlen-1)
 	}
-	gen.rounds_count = count
+	gen.rounds_count = count - gen.round + 1
 }
 
 func (gen *Generator) next() {
 	idx := 1
+	gen.round++
 	for {
 		symbol_number := gen.index_list[len(gen.index_list)-idx]
 		if symbol_number == gen.max_symbol {
